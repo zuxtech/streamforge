@@ -7,7 +7,8 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-// Mapper translates ORY Kratos responses into StreamForge types.
+// Mapper translates ORY Kratos responses into StreamForge authentication types.
+
 package kratos
 
 import "github.com/zuxtech/streamforge/internal/platform/auth"

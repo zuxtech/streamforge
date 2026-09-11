@@ -16,7 +16,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const poweredBy = "StreamForge"
 
 func requestIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -32,12 +31,17 @@ func requestIDMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func poweredByMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Powered-By", poweredBy)
 
-		next.ServeHTTP(w, r)
-	})
+func poweredByMiddleware(value string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if value != "" {
+				w.Header().Set("X-Powered-By", value)
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {

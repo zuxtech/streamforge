@@ -7,6 +7,8 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
+// Health check handlers report the availability of the StreamForge service.
+
 package http
 
 import (
@@ -23,20 +25,10 @@ type ReadinessResponse struct {
 	Status string `json:"status"`
 }
 
-type Server struct {
-	startTime time.Time
-}
-
-func NewServer() *Server {
-	return &Server{
-		startTime: time.Now(),
-	}
-}
-
 func (s *Server) livenessHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 
-	writeJSON(w, http.StatusOK, LivenessResponse{
+	WriteJSON(w, http.StatusOK, LivenessResponse{
 		Status: "ok",
 		Uptime: uint64(time.Since(s.startTime).Seconds()),
 	})
@@ -48,7 +40,12 @@ func (s *Server) readinessHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Cache-Control", "no-cache")
 
-	writeJSON(w, http.StatusOK, ReadinessResponse{
-		Status: "ok",
+	WriteJSON(w, http.StatusOK, ReadinessResponse{
+		Status: "ready",
 	})
+}
+
+func (s *Server) registerHealthRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /health/live", s.livenessHandler)
+	mux.HandleFunc("GET /health/ready", s.readinessHandler)
 }

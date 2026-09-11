@@ -7,7 +7,8 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-// Authenticator adapts ORY Kratos authentication to StreamForge.
+// Authenticator adapts ORY Kratos authentication to the StreamForge auth interface.
+
 package kratos
 
 import (

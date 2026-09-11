@@ -1,85 +1,44 @@
 package config
 
-import (
-	"log"
-	"net"
-	"os"
-	"strconv"
-	"strings"
-
-	"github.com/joho/godotenv"
-)
-
 type Config struct {
-	APIAddr string
-	BaseURL string
+	Server      ServerConfig      `yaml:"server"`
+	Auth        AuthConfig        `yaml:"auth"`
+	Database    DatabaseConfig    `yaml:"database"`
+	Redis       RedisConfig       `yaml:"redis"`
+	Storage     StorageConfig     `yaml:"storage"`
+	Transcoding TranscodingConfig `yaml:"transcoding"`
 }
 
-const (
-	defaultHost = "127.0.0.1"
-	defaultPort = 8080
-	defaultScheme = "http"
-)
+type ServerConfig struct {
+	Host      string `yaml:"host"`
+	Port      int    `yaml:"port"`
+	PoweredBy string `yaml:"powered_by"`
 
-func Load() Config {
-	if err := godotenv.Load(); err != nil {
-		log.Print("warning: .env not loaded: ", err)
-	}
-
-	port := getPort("STREAMFORGE_API_PORT", defaultPort)
-	host := getHost("STREAMFORGE_API_HOST", defaultHost)
-
-	addr := net.JoinHostPort(host, strconv.Itoa(port))
-
-	baseURL := defaultScheme + "://" + addr
-
-	return Config{
-		APIAddr: addr,
-		BaseURL: baseURL,
-	}
+	Addr          string `yaml:"-"`
+	BaseURL       string `yaml:"-"`
 }
 
-func getPort(key string, fallback int) int {
-	value := os.Getenv(key)
-
-	if value == "" {
-		return fallback
-	}
-
-	port, err := strconv.Atoi(value)
-	if err != nil {
-		log.Printf(
-			"warning: invalid %s=%q, using %d",
-			key,
-			value,
-			fallback,
-		)
-
-		return fallback
-	}
-
-	return port
+type AuthConfig struct {
+	Provider string       `yaml:"provider"`
+	Kratos   KratosConfig `yaml:"kratos"`
 }
 
-func getHost(key string, fallback string) string {
-	value := os.Getenv(key)
+type KratosConfig struct {
+	URL string `yaml:"url"`
+}
 
-	if value == "" {
-		return fallback
-	}
+type DatabaseConfig struct {
+	URL string `yaml:"url"`
+}
 
-	host := strings.TrimSpace(value)
+type RedisConfig struct {
+	URL string `yaml:"url"`
+}
 
-	if host == "" {
-		log.Printf(
-			"warning: invalid %s=%q, using %s",
-			key,
-			value,
-			fallback,
-		)
+type StorageConfig struct {
+	Provider string `yaml:"provider"`
+}
 
-		return fallback
-	}
-
-	return host
+type TranscodingConfig struct {
+	Provider string `yaml:"provider"`
 }

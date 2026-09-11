@@ -13,25 +13,32 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/zuxtech/streamforge/adapters/auth/kratos"
 	"github.com/zuxtech/streamforge/internal/platform/config"
 	platformhttp "github.com/zuxtech/streamforge/internal/platform/http"
+	"github.com/zuxtech/streamforge/internal/user"
 )
 
 func main() {
 	cfg := config.Load()
 
-	handler := platformhttp.NewServer()
+	kratosClient := kratos.NewClient(cfg.Auth.Kratos.URL)
+	authenticator := kratos.NewAuthenticator(kratosClient)
 
-	addr := cfg.APIAddr
-	baseURL := cfg.BaseURL
+	server := platformhttp.NewServer(
+		platformhttp.WithPoweredBy(cfg.Server.PoweredBy),
+	)
 
-	if addr == "" {
-		addr = ":8080"
-	}
+	userHandler := &user.Handler{}
 
-	log.Printf("streamforge api listening on %s", baseURL)
+	userHandler.RegisterRoutes(
+		server.Mux(),
+		authenticator,
+	)
 
-	if err := http.ListenAndServe(addr, handler.Handler()); err != nil {
+	log.Printf("streamforge api listening on %s", cfg.Server.BaseURL)
+
+	if err := http.ListenAndServe(cfg.Server.Addr, server); err != nil {
 		log.Fatal(err)
 	}
 }

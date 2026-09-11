@@ -7,6 +7,8 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
+// Auth defines the authentication contract used by StreamForge.
+
 package auth
 
 import "context"

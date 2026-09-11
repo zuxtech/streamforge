@@ -1,0 +1,21 @@
+server:
+  host: 127.0.0.1
+  port: 8080
+  powered_by: "streamforge"
+
+auth:
+  provider: kratos
+  kratos:
+    url: http://127.0.0.1:4433
+
+database:
+  url: postgres://localhost/streamforge
+
+redis:
+  url: redis://127.0.0.1:6379
+
+storage:
+  provider: s3
+
+transcoding:
+  provider: ffmpeg
