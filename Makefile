@@ -3,14 +3,14 @@
 dev:
 	go run ./cmd/api
 
-# build:
-# 	go build ./...
+build:
+	go build ./...
 
-# test:
-# 	go test ./...
+test:
+	go test ./...
 
-# vet:
-# 	go vet ./...
+vet:
+	go vet ./...
 
 tidy:
 	go mod tidy
