@@ -7,9 +7,20 @@ auth:
   provider: kratos
   kratos:
     url: http://127.0.0.1:4433
+    database:
+      schema: kratos
+
+# database:
+#   url: postgres://localhost/streamforge
 
 database:
-  url: postgres://localhost/streamforge
+  host: postgres
+  port: 5432
+  name: streamforge
+  user: streamforge
+  password: ${POSTGRES_PASSWORD}
+  schema: streamforge
+
 
 redis:
   url: redis://127.0.0.1:6379

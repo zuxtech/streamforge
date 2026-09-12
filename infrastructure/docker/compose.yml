@@ -1,0 +1,182 @@
+name: streamforge
+
+services:
+
+  postgres:
+    image: postgres:18-alpine
+
+    restart: unless-stopped
+
+    environment:
+      PGDATA: /var/lib/postgresql/18/docker
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./volumes/postgres/init:/docker-entrypoint-initdb.d:ro
+
+    networks:
+      - intranet
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - max_connections=100
+
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+
+  kratos-migrate:
+    image: oryd/kratos:v26.2.0
+
+    env_file:
+      - .env
+
+    environment:
+      DSN: >-
+        postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable&search_path=kratos&max_conns=20&max_idle_conns=4
+
+    volumes:
+      - type: bind
+        source: ./config/kratos
+        target: /etc/config/kratos
+        read_only: true
+  
+      - type: tmpfs
+        target: /home/ory
+
+      - type: tmpfs
+        target: /var/lib/sqlite
+
+    command:
+      - -c
+      - /etc/config/kratos/kratos.yml
+      - migrate
+      - sql
+      - -e
+      - --yes
+
+    restart: "no"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - intranet
+
+
+  kratos:
+    image: oryd/kratos:v26.2.0
+
+    env_file:
+      - .env
+
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+
+    restart: unless-stopped
+
+    ports:
+      - "4433:4433" # public
+      - "4434:4434" # admin
+
+    environment:
+      DSN: >-
+        postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable&search_path=kratos&max_conns=20&max_idle_conns=4
+
+      LOG_LEVEL: trace
+
+    command:
+      - serve
+      - -c
+      - /etc/config/kratos/kratos.yml
+      - --dev
+      - --watch-courier
+
+    volumes:
+      - type: bind
+        source: ./config/kratos
+        target: /etc/config/kratos
+        read_only: true
+
+      - type: tmpfs
+        target: /home/ory
+
+      - type: tmpfs
+        target: /var/lib/sqlite
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--spider",
+          "-q",
+          "http://localhost:4434/health/ready"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+    networks:
+      - intranet
+
+
+  kratos-selfservice-ui-node:
+    image: oryd/kratos-selfservice-ui-node:v26.2.0
+
+    ports:
+      - "4455:3000"
+
+    environment:
+      KRATOS_PUBLIC_URL: http://kratos:4433/
+      KRATOS_BROWSER_URL: http://127.0.0.1:4433/
+
+      COOKIE_SECRET: ${KRATOS_UI_COOKIE_SECRET}
+      CSRF_COOKIE_NAME: streamforge_csrf
+      CSRF_COOKIE_SECRET: ${KRATOS_UI_CSRF_COOKIE_SECRET}
+
+    depends_on:
+      kratos:
+        condition: service_healthy
+
+    networks:
+      - intranet
+
+    restart: on-failure
+
+
+networks:
+  intranet:
+    name: sf_intranet
+    driver: bridge
+
+
+volumes:
+  postgres_data:
+    name: sf_postgres
