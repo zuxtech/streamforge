@@ -14,7 +14,6 @@ package http
 import (
 	"net/http"
 	"time"
-
 )
 
 
@@ -24,6 +23,7 @@ type Server struct {
 	startTime time.Time
 	poweredBy string
 }
+
 
 type ServerOption func(*Server)
 
@@ -39,6 +39,7 @@ func NewServer(options ...ServerOption) *Server {
 		startTime: time.Now(),
 	}
 
+	// EXTENSION
 	for _, option := range options {
 		option(s)
 	}

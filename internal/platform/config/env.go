@@ -1,3 +1,12 @@
+/**
+ * Copyright (c) 2026 ZuxTech.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * This source code is licensed under the Apache License, Version 2.0
+ * found in the LICENSE file in the root directory of this source tree.
+ */
+
 package config
 
 import (
@@ -53,7 +62,7 @@ func applyEnvironment(cfg *Config) {
 	}
 }
 
-func getStringEnv(key string, fallback string) string {
+func getStringEnv(key, fallback string) string {
 	value := strings.TrimSpace(os.Getenv(key))
 
 	if value == "" {
@@ -87,9 +96,6 @@ func getIntEnv(key string, fallback int) int {
 
 func getOptionalStringEnv(key string) (string, bool) {
 	value, exists := os.LookupEnv(key)
-
-	print(value)
-	print(exists)
 
 	if !exists {
 		return "", false

@@ -14,21 +14,21 @@ package user
 import (
 	"net/http"
 
-	platformAuth "github.com/zuxtech/streamforge/internal/platform/auth"
-	platformHttp "github.com/zuxtech/streamforge/internal/platform/http"
+	platformauth "github.com/zuxtech/streamforge/internal/platform/auth"
+	platformhttp "github.com/zuxtech/streamforge/internal/platform/http"
 )
 
 type Handler struct{}
 
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
-	identity, ok := platformAuth.IdentityFromContext(r.Context())
+	identity, ok := platformauth.IdentityFromContext(r.Context())
 
 	if !ok {
-		platformHttp.WriteJSON(w, http.StatusUnauthorized, map[string]string{
+		platformhttp.WriteJSON(w, http.StatusUnauthorized, map[string]string{
 			"error": "unauthorized",
 		})
 		return
 	}
 
-	platformHttp.WriteJSON(w, http.StatusOK, identity)
+	platformhttp.WriteJSON(w, http.StatusOK, identity)
 }
