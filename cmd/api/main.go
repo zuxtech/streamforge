@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2026 ZuxTech.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -10,8 +10,13 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/zuxtech/streamforge/adapters/auth/kratos"
 	"github.com/zuxtech/streamforge/internal/auth"
@@ -23,27 +28,52 @@ import (
 func main() {
 	cfg := config.Load()
 
-	kratosClient := kratos.NewClient(cfg.Auth.Kratos.URL)
-
-	authenticator := kratos.NewAuthenticator(kratosClient)
-	registrar := kratos.NewRegistrar(kratosClient)
+	fmt.Println(cfg)
 
 	server := platformhttp.NewServer(
-		platformhttp.WithPoweredBy(cfg.Server.PoweredBy),
+	platformhttp.WithPoweredBy(cfg.Server.PoweredBy),
 	)
 
-	userHandler := &user.Handler{}
+	r := server.Router()
 
-	userHandler.RegisterRoutes(
-		server.Mux(),
-		authenticator,
+	kratosClient := kratos.NewClient(
+		cfg.Auth.Kratos.URL,
 	)
 
-	authHandler := auth.NewHandler(registrar)
-
-	authHandler.RegisterRoutes(
-		server.Mux(),
+	identityProvider := kratos.NewAuthenticator(
+		kratosClient,
 	)
+
+	registrationAdapter := kratos.NewRegistrationAdapter(
+		kratosClient,
+	)
+
+
+	pool, err := pgxpool.New(
+		context.Background(),
+		cfg.Database.URL,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pool.Close()
+
+	userRepository := user.NewPostgresRepository(pool)
+
+	registrationService := auth.NewRegistrationService(
+		registrationAdapter,
+		userRepository,
+	)
+
+	authHandler := auth.NewHandler(
+		registrationService,
+	)
+
+	server.RegisterHealthRoutes(r)
+
+	r.Route("/v1", func(r chi.Router) {
+		authHandler.RegisterRoutes(r, identityProvider)
+	})
 
 	log.Printf(
 		"streamforge api listening on %s",

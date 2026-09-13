@@ -1,7 +1,7 @@
 server:
   host: 127.0.0.1
   port: 8080
-  powered_by: ""
+  powered_by: "StreamForge" # empty string to disable
 
 auth:
   provider: kratos
@@ -10,16 +10,8 @@ auth:
     database:
       schema: kratos
 
-# database:
-#   url: postgres://localhost/streamforge
-
 database:
-  host: postgres
-  port: 5432
-  name: streamforge
-  user: streamforge
-  password: ${POSTGRES_PASSWORD}
-  schema: streamforge
+  url: postgres://streamforge:change-me@localhost:5432/streamforge?sslmode=disable&search_path=streamforge
 
 
 redis:

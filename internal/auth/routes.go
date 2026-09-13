@@ -12,22 +12,28 @@
 package auth
 
 import (
-	"net/http"
+	"github.com/go-chi/chi/v5"
 )
 
 // RegisterRoutes registers authentication routes.
 func (h *Handler) RegisterRoutes(
-	mux *http.ServeMux,
+	r chi.Router,
+	identityProvider IdentityProvider,
 ) {
-	mux.HandleFunc(
-		"GET /v1/auth/registration/flow",
+	r.Get(
+		"/auth/registration/flow",
 		h.CreateRegistrationFlow,
 	)
 
-	 mux.HandleFunc(
-        "POST /v1/auth/registration",
-        h.CompleteRegistration,
-    )
+	r.Post(
+		"/auth/registration",
+		h.CompleteRegistration,
+	)
+
+	r.With(
+		Middleware(identityProvider),
+	).Get(
+		"/me",
+		h.Me,
+	)
 }
-
-

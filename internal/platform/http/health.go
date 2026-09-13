@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2026 ZuxTech.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -7,13 +7,14 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-// Health check handlers report the availability of the StreamForge service.
-
+// Package http provides shared HTTP infrastructure for StreamForge.
 package http
 
 import (
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type LivenessResponse struct {
@@ -25,7 +26,10 @@ type ReadinessResponse struct {
 	Status string `json:"status"`
 }
 
-func (s *Server) livenessHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) livenessHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	w.Header().Set("Cache-Control", "no-cache")
 
 	WriteJSON(w, http.StatusOK, LivenessResponse{
@@ -34,9 +38,20 @@ func (s *Server) livenessHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Server) readinessHandler(w http.ResponseWriter, r *http.Request) {
-	// Dependency checks will go here.
-	// PostgreSQL, Redis, etc.
+// readinessHandler reports whether StreamForge is ready to serve traffic.
+func (s *Server) readinessHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	// TODO: Check dependencies.
+	//
+	// Examples:
+	// - PostgreSQL
+	// - Redis
+	// - Object storage
+	// - Queue
+	//
+	// A failed dependency check should return a non-2xx status.
 
 	w.Header().Set("Cache-Control", "no-cache")
 
@@ -45,7 +60,8 @@ func (s *Server) readinessHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Server) registerHealthRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /health/live", s.livenessHandler)
-	mux.HandleFunc("GET /health/ready", s.readinessHandler)
+// RegisterHealthRoutes registers health check routes on the given router.
+func (s *Server) RegisterHealthRoutes(r chi.Router) {
+	r.Get("/health/live", s.livenessHandler)
+	r.Get("/health/ready", s.readinessHandler)
 }

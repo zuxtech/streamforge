@@ -14,16 +14,16 @@ package http
 import (
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
-
 type Server struct {
-	mux       *http.ServeMux
+	router    *chi.Mux
 	handler   http.Handler
 	startTime time.Time
 	poweredBy string
 }
-
 
 type ServerOption func(*Server)
 
@@ -35,18 +35,15 @@ func WithPoweredBy(value string) ServerOption {
 
 func NewServer(options ...ServerOption) *Server {
 	s := &Server{
-		mux:       http.NewServeMux(),
+		router:    chi.NewRouter(),
 		startTime: time.Now(),
 	}
 
-	// EXTENSION
 	for _, option := range options {
 		option(s)
 	}
 
-	s.registerRoutes(s.mux)
-
-	var handler http.Handler = s.mux
+	var handler http.Handler = s.router
 
 	handler = loggingMiddleware(handler)
 	handler = poweredByMiddleware(s.poweredBy)(handler)
@@ -61,6 +58,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler.ServeHTTP(w, r)
 }
 
-func (s *Server) Mux() *http.ServeMux {
-	return s.mux
+func (s *Server) Router() *chi.Mux {
+	return s.router
 }

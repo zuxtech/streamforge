@@ -17,11 +17,7 @@ import (
 	"strings"
 )
 
-type contextKey string
-
-const identityContextKey contextKey = "auth.identity"
-
-func Middleware(authenticator Authenticator) func(http.Handler) http.Handler {
+func Middleware(identityProvider IdentityProvider) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, ok := bearerToken(r)
@@ -30,7 +26,7 @@ func Middleware(authenticator Authenticator) func(http.Handler) http.Handler {
 				return
 			}
 
-			identity, err := authenticator.GetIdentity(r.Context(), token)
+			identity, err := identityProvider.GetIdentity(r.Context(), token)
 			if err != nil {
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
@@ -67,7 +63,7 @@ func bearerToken(r *http.Request) (string, bool) {
 	return parts[1], true
 }
 
-func IdentityFromContext(ctx context.Context) (*Identity, bool) {
-	identity, ok := ctx.Value(identityContextKey).(*Identity)
-	return identity, ok
-}
+// func IdentityFromContext(ctx context.Context) (*Identity, bool) {
+// 	identity, ok := ctx.Value(identityContextKey).(*Identity)
+// 	return identity, ok
+// }

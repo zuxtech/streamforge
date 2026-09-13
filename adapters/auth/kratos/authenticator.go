@@ -14,12 +14,15 @@ package kratos
 import (
 	"context"
 
-	"github.com/zuxtech/streamforge/internal/platform/auth"
+	"github.com/zuxtech/streamforge/internal/auth"
 )
 
 type Authenticator struct {
 	client *Client
 }
+
+
+var _ auth.IdentityProvider = (*Authenticator)(nil)
 
 func NewAuthenticator(client *Client) *Authenticator {
 	return &Authenticator{
@@ -31,10 +34,14 @@ func (a *Authenticator) GetIdentity(
 	ctx context.Context,
 	sessionToken string,
 ) (*auth.Identity, error) {
-	response, err := a.client.whoAmI(ctx, sessionToken)
+	response, _, err := a.client.api.FrontendAPI.
+		ToSession(ctx).
+		XSessionToken(sessionToken).
+		Execute()
+
 	if err != nil {
-		return nil, err
+		return nil, mapSessionError(err)
 	}
 
-	return mapIdentity(response), nil
+	return mapIdentity(response.GetIdentity()), nil
 }

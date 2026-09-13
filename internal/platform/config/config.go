@@ -23,8 +23,8 @@ type ServerConfig struct {
 	Port      int    `yaml:"port"`
 	PoweredBy string `yaml:"powered_by"`
 
-	Addr          string `yaml:"-"`
-	BaseURL       string `yaml:"-"`
+	Addr    string `yaml:"-"`
+	BaseURL string `yaml:"-"`
 }
 
 type AuthConfig struct {

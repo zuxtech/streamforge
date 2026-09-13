@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2026 ZuxTech.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -13,30 +13,40 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/zuxtech/streamforge/internal/platform/id"
 )
 
+const (
+	requestIDHeader = "X-Request-ID"
+	poweredByHeader = "X-Powered-By"
+)
 
 func requestIDMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID := r.Header.Get("X-Request-ID")
+	return http.HandlerFunc(func(
+		w http.ResponseWriter,
+		r *http.Request,
+	) {
+		requestID := r.Header.Get(requestIDHeader)
 
 		if requestID == "" {
-			requestID = "req_" + uuid.NewString()
+			requestID = id.New("req")
 		}
 
-		w.Header().Set("X-Request-ID", requestID)
+		w.Header().Set(requestIDHeader, requestID)
 
 		next.ServeHTTP(w, r)
 	})
 }
 
-
+// poweredByMiddleware adds an X-Powered-By header to HTTP responses.
 func poweredByMiddleware(value string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		return http.HandlerFunc(func(
+			w http.ResponseWriter,
+			r *http.Request,
+		) {
 			if value != "" {
-				w.Header().Set("X-Powered-By", value)
+				w.Header().Set(poweredByHeader, value)
 			}
 
 			next.ServeHTTP(w, r)
@@ -44,17 +54,28 @@ func poweredByMiddleware(value string) func(http.Handler) http.Handler {
 	}
 }
 
+// loggingMiddleware records HTTP request timing.
 func loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(
+		w http.ResponseWriter,
+		r *http.Request,
+	) {
 		start := time.Now()
 
 		next.ServeHTTP(w, r)
 
 		duration := time.Since(start)
 
-		// Add structured logging later.
-		// Example:
-		// method, path, request ID, duration, status, etc.
+		// TODO: Replace with structured logging.
+		//
+		// Fields should include:
+		// - request ID
+		// - method
+		// - path
+		// - status
+		// - duration
+		// - remote address
+		//
 		_ = duration
 	})
 }

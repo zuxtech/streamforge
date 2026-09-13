@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2026 ZuxTech.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -8,29 +8,33 @@
  */
 
 // Package auth provides HTTP handlers for StreamForge authentication flows.
-
 package auth
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
-	platformauth "github.com/zuxtech/streamforge/internal/platform/auth"
 	platformhttp "github.com/zuxtech/streamforge/internal/platform/http"
 )
 
 // Handler handles authentication-related HTTP requests.
 type Handler struct {
-	registrar platformauth.Registrar
-	register platformauth.Registrar
+	registration *RegistrationService
 }
 
 // NewHandler creates an authentication HTTP handler.
-func NewHandler(registrar platformauth.Registrar) *Handler {
+func NewHandler(registration *RegistrationService) *Handler {
 	return &Handler{
-		registrar: registrar,
+		registration: registration,
 	}
+}
+
+type registrationRequest struct {
+	FlowID    string `json:"flow_id"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
 }
 
 // CreateRegistrationFlow creates a new user registration flow.
@@ -38,7 +42,10 @@ func (h *Handler) CreateRegistrationFlow(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	flow, err := h.registrar.CreateRegistrationFlow(r.Context())
+	flow, err := h.registration.CreateRegistrationFlow(
+		r.Context(),
+	)
+	
 	if err != nil {
 		platformhttp.WriteJSON(
 			w,
@@ -57,14 +64,14 @@ func (h *Handler) CreateRegistrationFlow(
 	)
 }
 
-
+// CompleteRegistration creates a StreamForge user account.
 func (h *Handler) CompleteRegistration(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	var input platformauth.RegistrationInput
+	var req registrationRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		platformhttp.WriteJSON(
 			w,
 			http.StatusBadRequest,
@@ -75,7 +82,7 @@ func (h *Handler) CompleteRegistration(
 		return
 	}
 
-	if input.FlowID == "" {
+	if req.FlowID == "" {
 		platformhttp.WriteJSON(
 			w,
 			http.StatusBadRequest,
@@ -86,7 +93,7 @@ func (h *Handler) CompleteRegistration(
 		return
 	}
 
-	if input.Email == "" {
+	if req.Email == "" {
 		platformhttp.WriteJSON(
 			w,
 			http.StatusBadRequest,
@@ -97,7 +104,7 @@ func (h *Handler) CompleteRegistration(
 		return
 	}
 
-	if input.Password == "" {
+	if req.Password == "" {
 		platformhttp.WriteJSON(
 			w,
 			http.StatusBadRequest,
@@ -108,40 +115,52 @@ func (h *Handler) CompleteRegistration(
 		return
 	}
 
+	input := RegistrationInput{
+		FlowID:    req.FlowID,
+		Email:     req.Email,
+		Password:  req.Password,
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+	}
 
-	result, err := h.registrar.CompleteRegistration(
+
+	result, err := h.registration.Register(
 		r.Context(),
 		input,
 	)
-
-
+	
 	if err != nil {
-		if errors.Is(err, platformauth.ErrPasswordBreached) {
-			platformhttp.WriteJSON(
-				w,
-				http.StatusBadRequest,
-				map[string]string{
-					"error":   "password_breached",
-					"message": "The password has been found in data breaches and cannot be used.",
-				},
-			)
-			return
-		}
-
-		platformhttp.WriteJSON(
-			w,
-			http.StatusInternalServerError,
-			map[string]string{
-				"error": "failed to complete registration",
-			},
-		)
+		platformhttp.WriteError(w, err)
 		return
 	}
-
 
 	platformhttp.WriteJSON(
 		w,
 		http.StatusCreated,
 		result,
+	)
+}
+
+func (h *Handler) Me(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	identity, ok := IdentityFromContext(r.Context())
+
+	if !ok {
+		platformhttp.WriteJSON(
+			w,
+			http.StatusUnauthorized,
+			map[string]string{
+				"error": "unauthorized",
+			},
+		)
+		return
+	}
+
+	platformhttp.WriteJSON(
+		w,
+		http.StatusOK,
+		identity,
 	)
 }

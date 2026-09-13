@@ -36,7 +36,6 @@ func Load() Config {
 
 	applyEnvironment(&cfg)
 
-
 	addr := net.JoinHostPort(
 		cfg.Server.Host,
 		strconv.Itoa(cfg.Server.Port),
@@ -44,7 +43,6 @@ func Load() Config {
 
 	cfg.Server.Addr = addr
 	cfg.Server.BaseURL = defaultScheme + "://" + addr
-
 
 	return cfg
 }

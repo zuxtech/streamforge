@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2026 ZuxTech.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -7,66 +7,58 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-// Mapper translates ORY Kratos responses into StreamForge authentication types.
-
+// Package kratos provides the StreamForge authentication adapter for Ory Kratos.
 package kratos
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
+	ory "github.com/ory/kratos-client-go/v26"
 
-	"github.com/zuxtech/streamforge/internal/platform/auth"
+	"github.com/zuxtech/streamforge/internal/auth"
 )
 
-func mapIdentity(response *whoAmIResponse) *auth.Identity {
+// mapIdentity maps an Ory Kratos identity to a StreamForge identity.
+func mapIdentity(response ory.Identity) *auth.Identity {
 	return &auth.Identity{
-		ID:    response.ID,
-		Email: response.Traits.Email,
+		ID:    response.GetId(),
+		Email: getIdentityEmail(response),
 	}
 }
 
+// mapRegistrationFlow maps an Ory Kratos registration flow to a
+// StreamForge registration flow.
 func mapRegistrationFlow(
-	response *registrationFlowResponse,
+	response *ory.RegistrationFlow,
 ) *auth.RegistrationFlow {
 	return &auth.RegistrationFlow{
-		ID:     response.ID,
-		Action: response.UI.Action,
+		ID:     response.Id,
+		Action: response.Ui.Action,
 	}
 }
 
+// mapRegistrationResult maps a successful Ory Kratos registration
+// response to a StreamForge registration result.
 func mapRegistrationResult(
-    response *registrationResponse,
+	response *ory.SuccessfulNativeRegistration,
 ) *auth.RegistrationResult {
-    return &auth.RegistrationResult{
-        IdentityID: response.Identity.ID,
-        Email:      response.Identity.Traits.Email,
-    }
+	identity := response.GetIdentity()
+
+	return &auth.RegistrationResult{
+		IdentityID: identity.GetId(),
+		Email:      getIdentityEmail(identity),
+	}
 }
 
-
-func mapRegistrationError(
-	resp *http.Response,
-) error {
-	var result kratosErrorResponse
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return fmt.Errorf(
-			"kratos registration endpoint returned status %d",
-			resp.StatusCode,
-		)
+// getIdentityEmail extracts the email address from an Ory Kratos identity.
+func getIdentityEmail(identity ory.Identity) string {
+	traits, ok := identity.GetTraits().(map[string]interface{})
+	if !ok {
+		return ""
 	}
 
-	for _, node := range result.UI.Nodes {
-		for _, message := range node.Messages {
-			if message.Text == "The password has been found in data breaches and must no longer be used." {
-				return auth.ErrPasswordBreached
-			}
-		}
+	email, ok := traits["email"].(string)
+	if !ok {
+		return ""
 	}
 
-	return fmt.Errorf(
-		"kratos registration endpoint returned status %d",
-		resp.StatusCode,
-	)
+	return email
 }

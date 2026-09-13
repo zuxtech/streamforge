@@ -23,7 +23,7 @@ const (
 	defaultAuthProvider        = "kratos"
 	defaultStorageProvider     = "s3"
 	defaultTranscodingProvider = "ffmpeg"
-) 
+)
 
 func defaultConfig() Config {
 	return Config{
