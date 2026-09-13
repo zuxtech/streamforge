@@ -33,7 +33,7 @@ func (r *PostgresRepository) Create(
 	ctx context.Context,
 	u *User,
 ) error {
-	_, err := r.db.Exec(
+	return r.db.QueryRow(
 		ctx,
 		`
 		INSERT INTO streamforge.users (
@@ -45,6 +45,7 @@ func (r *PostgresRepository) Create(
 			email_verified
 		)
 		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING created_at, updated_at
 		`,
 		u.ID,
 		u.KratosIdentityID,
@@ -52,9 +53,10 @@ func (r *PostgresRepository) Create(
 		u.FirstName,
 		u.LastName,
 		u.EmailVerified,
+	).Scan(
+		&u.CreatedAt,
+		&u.UpdatedAt,
 	)
-
-	return err
 }
 
 func (r *PostgresRepository) GetByID(
